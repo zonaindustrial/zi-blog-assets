@@ -1,89 +1,80 @@
 # Acuse de ticket enriquecido con IA (Helpdesk "Contacto Sitio web")
 
 Enriquecimiento del **primer correo de respuesta** a los tickets del equipo Helpdesk
-`Contacto Sitio web` de Odoo, generado por un worker de IA en n8n siguiendo la misma
-fórmula que el resto de los `ZI Worker - *`.
+`Contacto Sitio web`, siguiendo la misma fórmula que los demás enriquecimientos de
+Zona Industrial en Odoo (familia `zi.ai.worker`).
 
-- **Workflow n8n:** `ZI Worker - Acuse Ticket Helpdesk` (`ZDj8Wu1BGBBwFCvq`)
-- **Estado:** inactivo / invocable (no envía correos por sí solo)
-- **Modelo:** `gpt-5.4-mini`
+> Nota: la implementación vive en Odoo (no en n8n). La documentación canónica de esta
+> familia está en el repo `zi-odoo-addons` (`docs/ACUSE_LEAD_CON_IA.md`). Este archivo es
+> solo un resumen del acuse de ticket.
 
 ## Motivación (auditoría del acuse actual)
 
-El acuse automático que hoy manda Odoo tiene problemas:
+El acuse automático nativo de Odoo tiene problemas:
 
-1. **Bug de idioma:** empieza con `Estimado/a Madam/Sir,` (fallback en inglés de Odoo sin
-   traducir). Sale en todos los acuses.
-2. **Genérico:** no saluda según la hora, no agradece de forma cálida, no demuestra que se
-   entendió el motivo del cliente.
-3. **Firma interna:** cierra como "Equipo Contacto Sitio web" (nombre del equipo de
-   helpdesk, no comercial) y arrastra el branding de Odoo.
+1. **Bug de idioma:** empieza con `Estimado/a Madam/Sir,` (fallback en inglés sin traducir).
+2. **Genérico:** no saluda según la hora, no agradece, no demuestra que se entendió el motivo.
+3. **Firma interna:** cierra como "Equipo Contacto Sitio web" y arrastra el branding de Odoo.
 
-## Qué hace el worker
+## La fórmula (idéntica al acuse de lead)
 
-Replica la fórmula ZI Worker:
+Cadena del acuse de lead que se replica:
 
 ```
-Cuando lo llaman (executeWorkflowTrigger, passthrough)  ─┐
-Probar (manualTrigger)                                  ─┴─▶ Ticket (mcpClient: odoo_get_ticket)
-   ─▶ Preparar (Code) ─▶ Redactor Acuse (Agent) ◀── GPT (gpt-5.4-mini)
+base.automation 38 (asignación en etapa Por Contactar)
+   -> server action 7579 "ZI · Acuse de lead con IA" (arma contexto + saludo horario Chile)
+      -> env['zi.ai.worker'].run_worker(4, ctx)   # redactor puro, Claude Sonnet 4.6, read
+         -> guarda HTML en x_studio_zi_ai_lead_ack
+            -> envia mail.template 83 (renderiza el campo IA, fallback estatico)
 ```
 
-1. **Ticket** — lee el ticket en Odoo por MCP (`odoo_get_ticket`, scope acotado: nombre,
-   descripción, partner). Nada sensible.
-2. **Preparar** (Code) — calcula el **saludo según la hora de Chile** (Buenos días / Buenas
-   tardes / Buenas noches), limpia el asunto y la descripción, y arma el `system` + `prompt`
-   con los guardrails.
-3. **Redactor Acuse** (Agent) — redacta con IA y devuelve HTML con **dos bloques**:
-   - `<!--ACUSE_CLIENTE-->` correo listo para el cliente (auto-enviable, sin datos sensibles).
-   - `<!--BORRADOR_INTERNO-->` nota para el vendedor (motivo detectado, categoría, qué falta,
-     acción sugerida). No se envía al cliente.
+Workers hermanos ya existentes (`zi.ai.worker`): acuse de lead (4), confirmación de venta (6),
+notificación de entrega (7), seguimiento, vencimiento, recuperación de carrito, email.
 
-## Guardrails de confidencialidad
+## Lo creado para tickets
 
-El `system` prohíbe de forma estricta:
+- **Worker `zi.ai.worker` id 8 — "Enriquecimiento del acuse de ticket"** (creado).
+  - Modelo: Claude Sonnet 4.6 (`claude-sonnet-4-6`), `provider: anthropic`.
+  - `access_mode: read`, sin servidores MCP, sin herramientas, `max_iterations: 1`.
+  - Redactor puro: recibe todo el contexto pre-armado y devuelve solo el cuerpo HTML.
 
-- costos, márgenes, precios de compra;
-- proveedores / fabricantes;
-- niveles de stock o inventario interno;
-- datos o pedidos de **otros** clientes;
-- inventar precios, plazos o disponibilidad.
+### Reglas del worker (system prompt)
 
-Datos de un pedido/cotización del propio cliente (estado, **fecha de entrega comprometida**,
-PDF de factura o cotización) **solo** si el llamador entrega el objeto `PEDIDO_VINCULADO` ya
-verificado (ticket ligado a un pedido y correo del solicitante coincidente). Si no viene, el
-worker no menciona ningún pedido ni fecha. La minimización de datos se hace en el llamador:
-el modelo nunca recibe campos sensibles.
+- Voz de equipo (recibimos, revisamos, le responderemos), trato de usted, español de Chile,
+  tildes perfectas, **sin raya (em dash)**, destacados con `<strong style="color:#17375A;">`.
+- Abre con el **saludo horario** que le entrega el contexto + nombre del cliente.
+- Parafrasea el motivo, cita el **número de ticket**, da el plazo de respuesta e invita a
+  responder el correo con más detalles.
+- **Confidencialidad estricta:** jamás precios, márgenes, costos, proveedores, stock interno,
+  ni datos o pedidos de otros clientes. No inventa precios/plazos/disponibilidad.
+- **Excepción PEDIDO VINCULADO:** solo si el contexto trae un bloque verificado con el pedido
+  del propio cliente, puede indicar estado, **fecha de entrega comprometida** y mencionar el
+  **PDF adjunto** (factura/cotización). En ningún otro caso.
 
-## Contrato de entrada (invocación)
+## Pendiente de cablear en Odoo (mismos pasos que el lead, aún NO hechos)
 
-```json
-{
-  "ticket_id": 17930,
-  "ticket_ref": "18012",
-  "pedido": null
-}
-```
+Estos pasos hacen que el acuse llegue al cliente. No se ejecutan solos hasta activarlos.
 
-`pedido` es opcional y, cuando existe, solo debe traer campos seguros, por ejemplo:
-
-```json
-{ "referencia": "S01234", "estado": "en preparacion", "fecha_entrega": "2026-08-20", "pdf": true }
-```
+1. **Campo** en `helpdesk.ticket` para guardar el cuerpo IA (ej. `x_studio_zi_ai_ticket_ack`).
+2. **Server action** (modelo `helpdesk.ticket`) que replique la 7579: arma el contexto del
+   ticket (asunto, mensaje original del chatter, contacto, empresa, historial, saludo horario;
+   y, si el ticket está ligado a un pedido del propio cliente, el bloque PEDIDO VINCULADO con
+   lista blanca de campos: estado, fecha de entrega, PDF), llama `run_worker(8, ctx)`, guarda
+   el campo y envía la plantilla. Reutilizar el guard anti-Duemint.
+3. **Plantilla** de acuse de ticket que renderice el campo IA (fallback estático) en lugar del
+   `Estimado/a Madam/Sir`.
+4. **Trigger** `base.automation` al crear ticket del equipo `Contacto Sitio web`.
 
 ## Modo híbrido (decisión de negocio)
 
-- **Auto-enviable:** el bloque `ACUSE_CLIENTE` (saludo + agradecimiento + motivo entendido +
-  próximos pasos). No lleva datos sensibles.
-- **Revisión del vendedor:** el bloque `BORRADOR_INTERNO` se publica como nota interna en el
-  ticket para que el ejecutivo lo apruebe/complete.
+- Auto-enviable: el acuse enriquecido (saludo + motivo entendido + próximos pasos), sin datos
+  sensibles.
+- Datos de pedido (fecha de entrega, PDF) solo vía PEDIDO VINCULADO verificado por la server
+  action (minimización de datos en el contexto: el modelo nunca ve campos sensibles).
 
-## Pasos pendientes para producción
+## Prueba en vivo (ticket #18011)
 
-1. En el nodo **GPT**, cambiar la credencial `n8n free OpenAI API credits` por la credencial
-   OpenAI principal de ZI.
-2. Construir el **orquestador** (automatización de Odoo o flujo n8n) que: dispare al crear el
-   ticket, resuelva el `PEDIDO_VINCULADO` con lista blanca de campos, invoque este worker,
-   parta el output por los marcadores, **envíe** `ACUSE_CLIENTE` y **publique**
-   `BORRADOR_INTERNO` como nota interna.
-3. Corregir en paralelo la plantilla nativa de Odoo (el `Estimado/a Madam/Sir`) como respaldo.
+`run_worker(8, ctx)` con el contexto del ticket de Jaime Rubilar devolvió un acuse correcto:
+saludo por hora, paráfrasis del pedido (drivers LED con modelos y cantidades), número de
+ticket citado, plazo de 24 h hábiles e invitación a responder. Sin precios ni plazos de
+entrega. Guardrails respetados.
