@@ -21,7 +21,7 @@ base.automation 38 "ZI · Acuse de lead con IA"
                └─ mail.template 83 .send_mail(lead.id)   (renderiza el campo IA, fallback estatico)
 ```
 
-- **Worker:** `zi.ai.worker` id **4** — "Enriquecimiento del acuse de lead".
+- **Worker:** `zi.ai.worker` id **4**: "Enriquecimiento del acuse de lead".
 - **Gate:** un solo acuse por lead (si `x_studio_zi_ai_lead_ack` ya tiene contenido, no regenera).
 - **Guard Duemint:** miles de partners tienen como email la casilla de facturación
   electrónica `dte@duemint.com`. Si el email efectivo contiene `duemint`, busca un contacto de

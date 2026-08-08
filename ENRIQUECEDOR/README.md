@@ -54,6 +54,20 @@ Cliente recibe UN acuse calido, humano, con saludo por hora
 Si el worker o el flujo falla, el `try/except` no corta nada: el campo queda vacío y la
 plantilla 39 usa su **saludo genérico cálido por hora** (nunca "Estimado/a cliente").
 
+## Qué hace el acuse
+
+- Saluda por hora (Buenos días / Buenas tardes / Buenas noches), cálido y humano.
+- Agradece y parafrasea lo que pidió el cliente (demuestra que se leyó).
+- Cita el número de ticket. **No compromete plazos** (nada de 24 horas).
+- **Cliente NUEVO:** pide los datos que faltan para cotizar (razón social, RUT, giro,
+  dirección de despacho, teléfono, y detalles del producto). Así se gana tiempo.
+- **Cliente EXISTENTE:** reconoce la relación y no pide lo que ya tenemos.
+- **Nunca** usa la raya larga (em dash) ni filtra datos sensibles.
+- Un solo correo por ticket.
+
+> La IA no está conectada al MCP. El estado nuevo/existente y los datos del cliente los lee la
+> automatización desde `res.partner` (como los otros templates) y los pasa al contexto.
+
 ## Tabla maestra de objetos (todos los IDs)
 
 | Objeto | Modelo | ID | Rol |
