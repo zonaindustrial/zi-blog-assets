@@ -23,7 +23,7 @@ vendedor, productos, etc.) y llama `run_worker(id, ctx)` o `run_task(ctx)`.
    historial de compras, y el **saludo horario de Chile**.
 2. `run_worker(id, ctx)` (o `run_task` en el inicial), limpia fences ```` ``` ````.
 3. Guarda el HTML en el campo destino.
-4. Guard DUEMINT: si el email es la casilla DTE `dte@duemint.com` (o interno), redirige a un
+4. Guard Duemint: si el email es la casilla DTE `dte@duemint.com` (o interno), redirige a un
    contacto válido o no envía y deja nota.
 5. Envía la plantilla (o abre el compose, en el inicial).
 

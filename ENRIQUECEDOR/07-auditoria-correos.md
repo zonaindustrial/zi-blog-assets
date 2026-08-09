@@ -3,7 +3,7 @@
 Lectura por MCP de `mail.message` (model `sale.order`, `message_type=email`) desde el
 2026-07-11. Volumen: **1.435 correos**, la mayoría "Seguimiento de Cotización" (worker 2).
 Vendedores activos: Ivo Rojas, Luis Landaeta, Loredana Palumbo, Nicolás Díaz, Samantha Juarez,
-Marco Bizama, Martín Napanga, Giuliana Velarde.
+Marco Bizama, Martin Napanga, Giuliana Velarde.
 
 ## Hallazgos
 

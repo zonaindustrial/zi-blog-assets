@@ -135,7 +135,7 @@ for ticket in tickets:
         if not correo:
             correo = '(sin texto adicional, solo el asunto)'
         hcl = datetime.datetime.now(timezone('America/Santiago')).hour
-        saludo_h = 'Buenos dias' if hcl < 12 else ('Buenas tardes' if hcl < 20 else 'Buenas noches')
+        saludo_h = 'Buenos días' if hcl < 12 else ('Buenas tardes' if hcl < 20 else 'Buenas noches')
         ctx = 'CONTEXTO DEL ACUSE DE RECIBO, todo lo necesario, no necesitas consultar nada mas.' + nl
         ctx = ctx + 'Numero de ticket: ' + (ticket.ticket_ref or '') + nl
         ctx = ctx + 'Asunto de la solicitud: ' + asunto + nl

@@ -48,7 +48,7 @@ helpdesk.ticket.create()  ──►  etapa por defecto = "Nuevo" (id 55, SIN pla
         │       └─ mail.template(39).send_mail(ticket.id)
         │               └─ plantilla 39 renderiza el campo IA  ──►  correo al cliente
         ▼
-Cliente recibe UN acuse calido, humano, con saludo por hora
+Cliente recibe UN acuse cálido, humano, con saludo por hora
 ```
 
 Si el worker o el flujo falla, el `try/except` no corta nada: el campo queda vacío y la
