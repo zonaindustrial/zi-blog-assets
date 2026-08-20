@@ -98,13 +98,23 @@ la idempotencia no dependen de la frecuencia.
 
 ## 4. Hallazgos secundarios
 
-### 4.1 Deriva entre `deploy.sh` y `setup_schedulers.sh` (documentación que miente)
-`deploy.sh:139` dice que `zi-intcomex-ordenes-sched (45 * * * *)` **debe estar
-ENABLED**. `setup_schedulers.sh` dice lo contrario: que el comprador quedó
-**SIN cadencia y en PAUSED** desde la auditoría del 2026-08-02, y no lo crea. La
-realidad operativa (la corrida de hoy a las 17:45) le da la razón a `deploy.sh`.
-Quien lea `setup_schedulers.sh` para entender el sistema se lleva una idea falsa
-del componente que mueve plata. Corresponde alinear el bloque comentado.
+### 4.1 Tres fuentes del repo se contradicen sobre si el comprador está armado
+No se puede saber, leyendo el repositorio, si el componente que gasta plata tiene
+cadencia. Las tres fuentes dicen cosas distintas:
+
+| Fuente | Qué afirma |
+|---|---|
+| `CLAUDE.md:47` (doc maestro, lo primero que se lee) | `job_ordenes` **sin scheduler** |
+| `setup_schedulers.sh` | quedó **PAUSED** el 2026-08-02, no lo crea, "esta línea NO se reactiva hasta corregirlo" |
+| `deploy.sh:139` | `zi-intcomex-ordenes-sched (45 * * * *)` **debe estar ENABLED** |
+
+La realidad operativa le da la razón a `deploy.sh`: la colocación de hoy cayó a
+las 17:45 Chile, que es exactamente `45 * * * *`.
+
+Esto no es prolijidad documental. `deploy.sh` describe el desarme de emergencia
+como "pausar el scheduler y `PUSH_ORDERS=0`"; quien tenga que ejecutarlo con
+apuro va a leer primero `CLAUDE.md`, que dice que ese scheduler no existe.
+Corresponde alinear las tres y dejar una sola fuente de verdad.
 
 ### 4.2 `_write_back_po()` no excluye OC canceladas
 `_buscar_oc_venta()` y `_sale_manually_ordered()` filtran `state != cancel`;
