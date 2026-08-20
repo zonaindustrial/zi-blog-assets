@@ -181,3 +181,62 @@ desalinea cualquier reporte de compras por fecha.
 
 Los cambios 1, 2, 4 y 5 son en `zonaindustrial/zi-intcomex-scraper`; esta sesión
 tiene ese repo en modo lectura.
+
+---
+
+## 7. Dónde vive esto y qué implica para el arreglo
+
+El comprador **no corre desde el repo: corre como Cloud Run Job**
+(`zi-intcomex-ordenes`, proyecto `stock-y-precio`, región `us-central1`),
+disparado por Cloud Scheduler. Eso tiene tres consecuencias para esta auditoría.
+
+**a) La verdad operativa es la imagen desplegada, no el HEAD del repo.** Entre
+`git push` y producción hay un `deploy.sh` (Cloud Build → imagen → `run jobs
+deploy`) que puede no haberse corrido. El HEAD auditado es `3af7c85` (13-ago).
+
+**b) Aun así, el hallazgo principal (§2) no depende de esa deriva.** No se apoya
+solo en leer el código: se apoya en lo que la imagen desplegada **efectivamente
+escribió** en Odoo hoy a las 17:46 — una marca `estado=colocando` con
+`numero_orden` vacío, y ninguna marca de confirmación después, con la orden 4960891
+ya colocada. Sea cual sea el commit que hay adentro del contenedor, ese contenedor
+tiene el bug. Lo mismo vale para el 13-ago y el 6-ago.
+
+**c) El arreglo no queda aplicado con mergear un PR.** La secuencia completa es:
+
+```bash
+# 1. cambio en el repo (marca de confirmación incondicional, §2)
+# 2. reconstruir y redesplegar SOLO ese job
+DEPLOY_JOBS=zi-intcomex-ordenes ./deploy.sh
+# 3. verificar que el job quedó con la imagen nueva y las env correctas
+gcloud run jobs describe zi-intcomex-ordenes --region us-central1 \
+  --format='value(spec.template.spec.template.spec.containers[0].image)'
+```
+
+El scheduler es una pieza aparte y `setup_schedulers.sh` **no lo administra**
+(§4.1), así que un redeploy no lo toca ni lo repara. Su estado real se confirma
+con:
+
+```bash
+gcloud scheduler jobs describe zi-intcomex-ordenes-sched \
+  --location us-central1 --format='value(state,schedule,lastAttemptTime)'
+```
+
+**Pendiente de verificación en GCP.** Esta sesión no tiene credenciales válidas
+para el proyecto (el token del entorno responde `401 UNAUTHENTICATED` contra
+Cloud Scheduler), así que tres cosas quedaron inferidas y no comprobadas:
+
+1. que el scheduler está `ENABLED` con `45 * * * *` — inferido de que la corrida
+   de hoy cayó a las 17:45 Chile y del comentario en `deploy.sh:139`;
+2. que la imagen desplegada corresponde a `3af7c85`;
+3. que el job corre cada hora y termina sin comprar cuando no hay nada — el
+   comprador solo avisa a n8n cuando pasa algo, así que "silencio" y "no corrió"
+   se ven idénticos desde afuera. Se distinguen con:
+
+```bash
+gcloud run jobs executions list --job zi-intcomex-ordenes \
+  --region us-central1 --limit 30
+```
+
+Si esa lista muestra ~24 ejecuciones diarias exitosas, el comprador está vivo y
+solo estuvo callado. Si muestra una sola por día, hay un segundo problema debajo
+del de la marca.
