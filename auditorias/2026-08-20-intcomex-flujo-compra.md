@@ -142,11 +142,22 @@ log y en el resumen de la corrida: no se emite evento a n8n. Un falso positivo
 09:00 con `venta_sin_orden`, y solo si supera las horas de gracia. La red está,
 pero con hasta 24 h de retraso.
 
-### 4.5 El módulo que mueve plata no tiene tests
-`tests/` cubre red tags, pesos, fotos, categorías, Icecat, duplicados, universo
-espejo y el verificador. No hay `test_intcomex_orders.py`. El bug de la sección 2
-lo habría atrapado un test de 10 líneas sobre `run()` con un placer falso,
-verificando que la marca final trae `numero_orden`.
+### 4.5 La suite cubría al comprador, pero no el desenlace de la marca
+**Corrección de esta auditoría (2026-08-21).** La versión original afirmaba que
+el comprador no tenía tests. Es falso: `tests/` trae 35 archivos, entre ellos
+`test_intcomex_orders.py` con 646 líneas sobre `run()`. El error vino de un
+listado truncado al leer el repo, no del repo.
+
+Lo que sí faltaba era más estrecho, y explica por qué el defecto de la §2
+sobrevivió a una suite de 721 casos: ningún test fijaba **el desenlace** de la
+marca. Los existentes miden a quién se compra, qué se retiene y qué no se coloca
+en dry-run; ninguno exigía que, después de colocar, la venta quedara con el
+número de orden en el chatter. Un defecto que solo se ve ahí pasa por debajo de
+una suite que mide decisiones de compra.
+
+Cerrado por `TestMarcaDeConfirmacion` (commit 86be701, ya en `main`), que
+reproduce la condición real —`_line_already_ordered` devolviendo True— y exige
+la marca de confirmación igual.
 
 ### 4.6 Observación menor: `date_order` de las OC nace un día atrás
 OC09398 (creada 20-08 21:30) quedó con `date_order` 19-08 21:30; lo mismo OC09329
@@ -185,7 +196,7 @@ desalinea cualquier reporte de compras por fecha.
 | 1 | Marca de confirmación inalcanzable (§2) | Alta (trazabilidad) | 1 línea |
 | 2 | `_write_back_po` sin filtro de cancelada (§4.2) | Media (plata) | 2 líneas |
 | 3 | Deriva de documentación del scheduler (§4.1) | Media (operación) | comentario |
-| 4 | Sin tests del comprador (§4.5) | Media | 1 archivo |
+| 4 | Sin test del desenlace de la marca (§4.5) | Media | ✅ cerrado (86be701) |
 | 5 | `like` por prefijo (§4.3) + salto silencioso (§4.4) | Baja (latente) | pequeño |
 | 6 | Cadencia :45 → `*/15` si se quiere menos espera (§3) | Decisión de negocio | cron |
 
